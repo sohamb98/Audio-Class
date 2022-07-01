@@ -11,6 +11,12 @@ import librosa.display
 
 from playsound import playsound
 
+#Reading metadata
+metadata = pd.read_csv(r"D:\Audio Dataset\TAU-urban-acoustic-scenes-2020-mobile-development\meta.csv", delim_whitespace=True)
+metadata.head()
+print(metadata['filename'][0])
+
+#Redeading metadata from the folder
 audio_files = glob("D:\\Audio Dataset\\TAU-urban-acoustic-scenes-2020-mobile-development\\audio\\*.wav")
 #print(audio_files[1])
 playsound(audio_files[0])
