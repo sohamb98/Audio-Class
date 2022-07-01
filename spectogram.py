@@ -24,3 +24,20 @@ print(f'sr :{sr}')
 pd.Series(y).plot(figsize=(10,5))
 
 plt.show()
+
+#Creating spectogram
+
+s = librosa.stft(y)
+
+#converting to decibles from aplitude
+s_db = librosa.amplitude_to_db(np.abs(s), ref=np.max)
+print(s_db.shape)
+
+
+fig, ax = plt.subplots(figsize=(10,5))
+img = librosa.display.specshow(s_db, x_axis="time", y_axis="log")
+fig.colorbar(img, ax=ax, format=f'%0.2f')
+plt.show()
+
+
+
