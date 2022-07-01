@@ -41,3 +41,13 @@ plt.show()
 
 
 
+
+# Creating log mel spectogram
+s1 = librosa.feature.melspectrogram(y=y,sr = sr, n_mels=128*4)
+#Converting to db
+s1_db_mel = librosa.amplitude_to_db(np.abs(s1), ref=np.max)
+
+fig, ax = plt.subplots(figsize=(15,5))
+img = librosa.display.specshow(s1_db_mel, x_axis="time", y_axis="log")
+fig.colorbar(img, ax=ax, format=f'%0.2f')
+plt.show()
