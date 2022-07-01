@@ -1,0 +1,6 @@
+#Ignore Dataset
+audio/
+evaluation_setup/
+
+#Ignore CSV files
+*.csv
