@@ -87,6 +87,11 @@ def main():
     #print(os.path.abspath( metadata['filename'][0] ))
     #print(os.path.dirname(os.path.abspath(__file__)))
 
+    # converting features to a dataframe
+
+    features_df = pd.DataFrame(features,columns=['feature', 'class'])
+    print(features_df.head())
+
 if __name__ == "__main__":
     main()
 
