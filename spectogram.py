@@ -18,8 +18,8 @@ datapath = currpath + "/meta.csv"
 audiopath = currpath + "/audio/*.wav"
 
 
-datapath = os.path.abspath(datapath)
-audiopath = os.path.abspath(audiopath)
+#datapath = os.path.abspath(datapath)
+#audiopath = os.path.abspath(audiopath)
 
 print(datapath)
 print(audiopath)
@@ -102,7 +102,10 @@ def main():
 
     features_df = pd.DataFrame(features,columns=['feature', 'class'])
     print(features_df.head())
-    features_df.to_csv (r'.\features.csv', index = False, header=True)
+
+    datapath_out = currpath + "/features.csv"
+    datapath_out = os.path.abspath(__file__)
+    features_df.to_csv (datapath_out, index = False, header=True)
 
 if __name__ == "__main__":
     main()
