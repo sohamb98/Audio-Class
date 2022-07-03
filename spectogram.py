@@ -91,6 +91,7 @@ def main():
 
     features_df = pd.DataFrame(features,columns=['feature', 'class'])
     print(features_df.head())
+    features_df.to_csv (r'.\features.csv', index = False, header=True)
 
 if __name__ == "__main__":
     main()
