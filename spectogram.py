@@ -13,13 +13,24 @@ import librosa.display
 
 from playsound import playsound
 
+currpath = os.path.abspath(os.getcwd())
+datapath = currpath + "/meta.csv"
+audiopath = currpath + "/audio/*.wav"
+
+
+datapath = os.path.abspath(datapath)
+audiopath = os.path.abspath(audiopath)
+
+print(datapath)
+print(audiopath)
+
 #Reading metadata
-metadata = pd.read_csv(r"D:\Audio Dataset\TAU-urban-acoustic-scenes-2020-mobile-development\meta.csv", delim_whitespace=True)
+metadata = pd.read_csv(datapath, delim_whitespace=True)
 metadata.head()
 #print(metadata['filename'][0])
 
 #Redeading metadata from the folder
-audio_files = glob("D:\\Audio Dataset\\TAU-urban-acoustic-scenes-2020-mobile-development\\audio\\*.wav")
+audio_files = glob(audiopath)
 
 
 '''''
