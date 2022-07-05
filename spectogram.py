@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 from tqdm import tqdm
+import skimage.io
 
 from glob import glob
 
@@ -78,18 +79,43 @@ plt.show()
 def features_extracter(file):
     y, sr = librosa.load(file)
     s1 = librosa.feature.melspectrogram(y=y,sr = sr, n_mels=128*4)
+
+    #Add a small number to avoid log(0)
+    s1 = np.log(s1 + 1e-9)
+
     s1_db_mel = librosa.amplitude_to_db(np.abs(s1), ref=np.max)
 
     return s1_db_mel
 
+def scale_minmax(X, min=0.0, max=1.0):
+    X_std = (X - X.min()) / (X.max() - X.min())
+    X_scaled = X_std * (max - min) + min
+    return X_scaled
+
 def main():
-    features = []
+    #features = []
     records = len(metadata.index)
     for index_num,row in metadata.iterrows():
         filename = os.path.abspath( row['filename'] )
         final_class_labels = row['scene_label']
         feature = features_extracter(filename)
-        features.append([feature, final_class_labels])
+
+        filename = row['filename']
+        filename = filename.replace("audio/","")
+        filename = filename.replace("wav","png")
+        filename = "/"+filename
+        #print(filename)
+        img = scale_minmax(feature, 0, 255).astype(np.uint8)
+        img = np.flip(img, axis=0)
+        img = 255-img
+
+        dataout = currpath + "/image/"
+        dataout = dataout + filename
+        dataout = os.path.abspath(dataout)
+        print(dataout)
+        skimage.io.imsave(dataout, img)
+
+        #features.append([feature, final_class_labels])
         os.system('cls')
         print(f'Extracted file{index_num}/{records}')
 
@@ -100,12 +126,12 @@ def main():
 
     # converting features to a dataframe
 
-    features_df = pd.DataFrame(features,columns=['feature', 'class'])
-    print(features_df.head())
+    #features_df = pd.DataFrame(features,columns=['feature', 'class'])
+    #print(features_df.head())
 
-    datapath_out = currpath + "/features.csv"
-    datapath_out = os.path.abspath(__file__)
-    features_df.to_csv (datapath_out, index = False, header=True)
+    #datapath_out = currpath + "/features.csv"
+    #datapath_out = os.path.abspath(__file__)
+    #features_df.to_csv (datapath_out, index = False, header=True)
 
 if __name__ == "__main__":
     main()
