@@ -3,4 +3,4 @@ audio/
 evaluation_setup/
 image/
 #Ignore CSV files
-*.csv
+meta.csv
