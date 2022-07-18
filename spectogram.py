@@ -99,7 +99,7 @@ def main():
         filename = os.path.abspath( row['filename'] )
         final_class_labels = row['scene_label']
         feature = features_extracter(filename)
-
+        
         filename = row['filename']
         filename = filename.replace("audio/","")
         filename = filename.replace("wav","png")
@@ -130,6 +130,7 @@ def main():
     #print(features_df.head())
 
     #datapath_out = currpath + "/features.csv"
+    #np.set_printoptions(threshold=sys.maxsize)
     #datapath_out = os.path.abspath(__file__)
     #features_df.to_csv (datapath_out, index = False, header=True)
 
