@@ -1,29 +1,29 @@
 from email.mime import audio
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
+#import matplotlib.pyplot as plt
+#import seaborn as sns
 import os
-from tqdm import tqdm
-import skimage.io
+#from tqdm import tqdm
+#import skimage.io
 
 from glob import glob
-
+import sys
 import librosa
-import librosa.display
+#import librosa.display
 
-from playsound import playsound
+#from playsound import playsound
 
 currpath = os.path.abspath(os.getcwd())
-datapath = currpath + "/meta.csv"
-audiopath = currpath + "/audio/*.wav"
+datapath = "./meta.csv"
+#audiopath = currpath + "/audio/*.wav"
 
 
 #datapath = os.path.abspath(datapath)
 #audiopath = os.path.abspath(audiopath)
 
-print(datapath)
-print(audiopath)
+#print(datapath)
+#print(audiopath)
 
 #Reading metadata
 metadata = pd.read_csv(datapath, delim_whitespace=True)
@@ -31,7 +31,7 @@ metadata.head()
 #print(metadata['filename'][0])
 
 #Redeading metadata from the folder
-audio_files = glob(audiopath)
+#audio_files = glob(audiopath)
 
 
 '''''
@@ -93,7 +93,7 @@ def scale_minmax(X, min=0.0, max=1.0):
     return X_scaled
 
 def main():
-    #features = []
+    features = []
     records = len(metadata.index)
     for index_num,row in metadata.iterrows():
         filename = os.path.abspath( row['filename'] )
@@ -101,22 +101,22 @@ def main():
         feature = features_extracter(filename)
 
         filename = row['filename']
-        filename = filename.replace("audio/","")
-        filename = filename.replace("wav","png")
-        filename = "/"+filename
+        #filename = filename.replace("audio/","")
+        #filename = filename.replace("wav","png")
+        #filename = "/"+filename
         #print(filename)
-        img = scale_minmax(feature, 0, 255).astype(np.uint8)
-        img = np.flip(img, axis=0)
-        img = 255-img
+        #img = scale_minmax(feature, 0, 255).astype(np.uint8)
+        #img = np.flip(img, axis=0)
+        #img = 255-img
 
-        dataout = currpath + "/image/"
-        dataout = dataout + filename
-        dataout = os.path.abspath(dataout)
-        print(dataout)
-        skimage.io.imsave(dataout, img)
-
-        #features.append([feature, final_class_labels])
-        os.system('cls')
+        #dataout = currpath + "/image/"
+        #dataout = dataout + filename
+        #dataout = os.path.abspath(dataout)
+        #print(dataout)
+        #skimage.io.imsave(dataout, img)
+        print(feature.shape)
+        features.append([feature, final_class_labels])
+        #os.system('cls')
         print(f'Extracted file{index_num}/{records}')
 
 
@@ -126,12 +126,13 @@ def main():
 
     # converting features to a dataframe
 
-    #features_df = pd.DataFrame(features,columns=['feature', 'class'])
+    features_df = pd.DataFrame(features,columns=['feature', 'class'])
     #print(features_df.head())
 
-    #datapath_out = currpath + "/features.csv"
+    datapath_out = "./features.csv"
+    np.set_printoptions(threshold=sys.maxsize)
     #datapath_out = os.path.abspath(__file__)
-    #features_df.to_csv (datapath_out, index = False, header=True)
+    features_df.to_csv (datapath_out, index = False, header=True)
 
 if __name__ == "__main__":
     main()
