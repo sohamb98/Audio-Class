@@ -25,8 +25,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #hyper parameters
 
-num_epochs = 1
-batch_size = 5
+num_epochs = 90
+batch_size = 128
 learning_rate = 0.001
 
 
@@ -61,15 +61,15 @@ class ConvNet(nn.Module):
         self.conv1 = nn.Conv2d(1, 6, 5)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16 * 5 * 5, 120)
+        self.fc1 = nn.Linear(16 * 125 * 104, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 10)
 
     def forward(self, x):
-        # -> n, 3, 32, 32
-        x = self.pool(F.relu(self.conv1(x)))  # -> n, 6, 14, 14
-        x = self.pool(F.relu(self.conv2(x)))  # -> n, 16, 5, 5
-        x = x.view(-1, 16 * 5 * 5)            # -> n, 400
+        # -> n, 1, 512, 431
+        x = self.pool(F.relu(self.conv1(x)))  # -> n, 6, 254, 213
+        x = self.pool(F.relu(self.conv2(x)))  # -> n, 16, 125, 104
+        x = x.view(-1, 16 * 125 * 104)            # -> n, 208000
         x = F.relu(self.fc1(x))               # -> n, 120
         x = F.relu(self.fc2(x))               # -> n, 84
         x = self.fc3(x)                       # -> n, 10
@@ -111,30 +111,38 @@ for epoch in range(num_epochs):
     for chunk in pd.read_csv(feature_path, chunksize=batch_size):
         vals = []
         labels = []
-        #vals = np.empty((512,431), float)
-        #labels = np.empty((0,413), int)
+        
         for index_num,row in chunk.iterrows():
-            abc = str_np(row["feature"])
-            vals.append(abc)
+            #Adding extra dimension [512,431]  to  [1, 512,431] and then appending to get [n, 1, 512,431]
+            vals.append([str_np(row["feature"])])
             labels.append(label_to_idx [ row["class"] ])
             spectograms = torch.from_numpy (np.array(vals))
-            tlabels = torch.from_numpy(np.array(labels))
-            #print(np.shape(abc))
-            #vals = np.append(vals, str_np(row["feature"]), axis=1)
-            #label = np.append(labels, label_to_idx [ row["label"] ], axis = 1)
-        
+            
+        #print(np.shape(vals))
+        tlabels = torch.from_numpy(np.array(labels))
+        spectograms = torch.from_numpy (np.array(vals))
+        #print( list(spectograms.size()) )
+        tlabels = torch.from_numpy(np.array(labels))
         
         spectograms = spectograms.to(device)
+        #Converting double tensor to float tensor as our model is float
+        spectograms = spectograms.float()
         tlabels = tlabels.to(device)
 
         #Forward pass
         outputs = model(spectograms)
-        loss = criterion(outputs, labels)
+        #print( list(outputs.size()) )
+        #print( list(tlabels.size()) )
+        loss = criterion(outputs, tlabels)
 
         # Backward and optimize
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         print("Done")
+    print(f"Completed Epoch {epoch}/{num_epochs}")
+    
 
 print('Finished Training')
+PATH = './cnn.pth'
+torch.save(model.state_dict(), PATH)
