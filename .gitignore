@@ -4,3 +4,5 @@ evaluation_setup/
 image/
 #Ignore CSV files
 *.csv
+#Ignore python file
+Tester.py

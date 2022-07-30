@@ -11,14 +11,14 @@ from ast import literal_eval
 import re
 
 def str_np(data_string):
-    data_string = data_string.replace('\n',',')
-    data_string = re.sub('(\d) +(-|\d)', r'\1,\2', data_string)
-    #nparr = np.array(literal_eval(data_string))
-    nparr = literal_eval(data_string)
+    nparr = re.sub('(\d) +(-|\d)', r'\1,\2', data_string)
+    nparr = nparr.replace(" ","")
+    nparr = nparr.replace('\n',',')
+    nparr = literal_eval(nparr)
     return nparr
 
 currpath = os.path.abspath(os.getcwd())
-feature_path = currpath + "/features.csv"
+feature_path = currpath + "/features3.csv"
 feature_path = os.path.abspath(feature_path)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -108,7 +108,7 @@ idx_to_label = {
 }
 
 for epoch in range(num_epochs):
-    for chunk in pd.read_csv(feature_path, chunksize=batch_size):
+    for chunk in pd.read_csv(feature_path, chunksize=batch_size,sep=";",error_bad_lines=False):
         vals = []
         labels = []
         

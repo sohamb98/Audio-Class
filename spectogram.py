@@ -100,7 +100,7 @@ def main():
         final_class_labels = row['scene_label']
         feature = features_extracter(filename)
 
-        filename = row['filename']
+        #filename = row['filename']
         #filename = filename.replace("audio/","")
         #filename = filename.replace("wav","png")
         #filename = "/"+filename
@@ -114,7 +114,7 @@ def main():
         #dataout = os.path.abspath(dataout)
         #print(dataout)
         #skimage.io.imsave(dataout, img)
-        print(feature.shape)
+        #print(filename.shape)
         features.append([feature, final_class_labels])
         #os.system('cls')
         print(f'Extracted file{index_num}/{records}')
@@ -129,10 +129,11 @@ def main():
     features_df = pd.DataFrame(features,columns=['feature', 'class'])
     #print(features_df.head())
 
-    datapath_out = "./features.csv"
+    datapath_out = "./features3.csv"
     np.set_printoptions(threshold=sys.maxsize)
+    np.set_printoptions(linewidth=sys.maxsize)
     #datapath_out = os.path.abspath(__file__)
-    features_df.to_csv (datapath_out, index = False, header=True)
+    features_df.to_csv (datapath_out, index = False, header=True, sep = ';')
 
 if __name__ == "__main__":
     main()
