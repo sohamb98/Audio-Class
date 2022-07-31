@@ -18,7 +18,7 @@ def str_np(data_string):
     return nparr
 
 currpath = os.path.abspath(os.getcwd())
-feature_path = currpath + "/features3.csv"
+feature_path = currpath + "/trainfeatures.csv"
 feature_path = os.path.abspath(feature_path)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -26,7 +26,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 #hyper parameters
 
 num_epochs = 90
-batch_size = 128
+batch_size = 64
 learning_rate = 0.001
 
 
@@ -91,7 +91,7 @@ label_to_idx = {
     'shopping_mall':6,
     'street_pedestrian':7,
     'street_traffic':8,
-    'Tram':9
+    'tram':9
 }
 
 idx_to_label = {
@@ -104,20 +104,24 @@ idx_to_label = {
     6:'shopping_mall',
     7:'street_pedestrian',
     8:'street_traffic',
-    9:'Tram'
+    9:'tram'
 }
 
 for epoch in range(num_epochs):
+    i = 0
     for chunk in pd.read_csv(feature_path, chunksize=batch_size,sep=";",error_bad_lines=False):
+        i= i+1
         vals = []
         labels = []
-        
+        j = 0
         for index_num,row in chunk.iterrows():
+            j = j+1
             #Adding extra dimension [512,431]  to  [1, 512,431] and then appending to get [n, 1, 512,431]
             vals.append([str_np(row["feature"])])
             labels.append(label_to_idx [ row["class"] ])
             spectograms = torch.from_numpy (np.array(vals))
-            
+            print(f"Adding Spectogram: {j}")
+        print(f"Completing Chunk: {i}")    
         #print(np.shape(vals))
         tlabels = torch.from_numpy(np.array(labels))
         spectograms = torch.from_numpy (np.array(vals))
@@ -139,7 +143,7 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        print("Done")
+        print(f"Done, loss: {loss.item():.4f}")
     print(f"Completed Epoch {epoch}/{num_epochs}")
     
 

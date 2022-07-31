@@ -15,7 +15,7 @@ import librosa
 #from playsound import playsound
 
 currpath = os.path.abspath(os.getcwd())
-datapath = "./meta.csv"
+datapath = "./evaluation_setup/fold1_train.csv"
 #audiopath = currpath + "/audio/*.wav"
 
 
@@ -129,7 +129,7 @@ def main():
     features_df = pd.DataFrame(features,columns=['feature', 'class'])
     #print(features_df.head())
 
-    datapath_out = "./features3.csv"
+    datapath_out = "./trainfeatures.csv"
     np.set_printoptions(threshold=sys.maxsize)
     np.set_printoptions(linewidth=sys.maxsize)
     #datapath_out = os.path.abspath(__file__)
