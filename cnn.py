@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import Dataset, DataLoader
 import torchvision
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
@@ -9,26 +10,74 @@ import pandas as pd
 import os
 from ast import literal_eval
 import re
+import pickle
 
-def str_np(data_string):
-    nparr = re.sub('(\d) +(-|\d)', r'\1,\2', data_string)
-    nparr = nparr.replace(" ","")
-    nparr = nparr.replace('\n',',')
-    nparr = literal_eval(nparr)
-    return nparr
+#Dataloader Class
 
-currpath = os.path.abspath(os.getcwd())
-feature_path = currpath + "/trainfeatures.csv"
-feature_path = os.path.abspath(feature_path)
+label_to_idx = {
+    'airport':0,
+    'bus':1,
+    'metro':2,
+    'metro_station':3,
+    'park':4,
+    'public_square':5,
+    'shopping_mall':6,
+    'street_pedestrian':7,
+    'street_traffic':8,
+    'tram':9
+}
+
+idx_to_label = {
+    0:'airport',
+    1:'bus',
+    2:'metro',
+    3:'metro_station',
+    4:'park',
+    5:'public_square',
+    6:'shopping_mall',
+    7:'street_pedestrian',
+    8:'street_traffic',
+    9:'tram'
+}
+
+class AudioDataset(Dataset):
+    def __init__(self):
+        #data loading
+        currpath = os.path.abspath(os.getcwd())
+        feature_path = currpath + "/train_features.pickle"
+        feature_path = os.path.abspath(feature_path)
+
+        with open(feature_path, "rb") as file:
+            data = pickle.load(file)
+        features = []
+        #features = np.array(features)
+        labels = []
+        a = len(data)
+        for i in range(a):
+            #features = np.append( features, np.expand_dims(data[i][0], axis = 0)  )
+            features.append([data[i][0]]) 
+            labels.append(label_to_idx [ data[i][1] ]) 
+        self.x = torch.from_numpy(np.array(features))
+        self.y = torch.from_numpy(np.array(labels))
+        self.n_samples = a
+    def __getitem__(self,index):
+        return self.x[index], self.y[index]
+    def __len__(self):
+        return self.n_samples
+
+
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #hyper parameters
+dataset = AudioDataset()
+
 
 num_epochs = 90
 batch_size = 64
 learning_rate = 0.001
 
+train_loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=2)
 
 
 #chunksize=1000000
@@ -81,70 +130,27 @@ model = ConvNet().to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
-label_to_idx = {
-    'airport':0,
-    'bus':1,
-    'metro':2,
-    'metro_station':3,
-    'park':4,
-    'public_square':5,
-    'shopping_mall':6,
-    'street_pedestrian':7,
-    'street_traffic':8,
-    'tram':9
-}
 
-idx_to_label = {
-    0:'airport',
-    1:'bus',
-    2:'metro',
-    3:'metro_station',
-    4:'park',
-    5:'public_square',
-    6:'shopping_mall',
-    7:'street_pedestrian',
-    8:'street_traffic',
-    9:'tram'
-}
-
+n_total_steps = len(train_loader)
 for epoch in range(num_epochs):
-    i = 0
-    for chunk in pd.read_csv(feature_path, chunksize=batch_size,sep=";",error_bad_lines=False):
-        i= i+1
-        vals = []
-        labels = []
-        j = 0
-        for index_num,row in chunk.iterrows():
-            j = j+1
-            #Adding extra dimension [512,431]  to  [1, 512,431] and then appending to get [n, 1, 512,431]
-            vals.append([str_np(row["feature"])])
-            labels.append(label_to_idx [ row["class"] ])
-            spectograms = torch.from_numpy (np.array(vals))
-            print(f"Adding Spectogram: {j}")
-        print(f"Completing Chunk: {i}")    
-        #print(np.shape(vals))
-        tlabels = torch.from_numpy(np.array(labels))
-        spectograms = torch.from_numpy (np.array(vals))
-        #print( list(spectograms.size()) )
-        tlabels = torch.from_numpy(np.array(labels))
-        
-        spectograms = spectograms.to(device)
+    for i, (spectograms, labels) in enumerate(train_loader):
         #Converting double tensor to float tensor as our model is float
         spectograms = spectograms.float()
-        tlabels = tlabels.to(device)
+        spectograms = spectograms.to(device)
+        labels = labels.to(device)
 
         #Forward pass
         outputs = model(spectograms)
         #print( list(outputs.size()) )
         #print( list(tlabels.size()) )
-        loss = criterion(outputs, tlabels)
+        loss = criterion(outputs, labels)
 
         # Backward and optimize
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        print(f"Done, loss: {loss.item():.4f}")
-    print(f"Completed Epoch {epoch}/{num_epochs}")
+        print(f"Step: {i+1}/{n_total_steps}, Epoch: {epoch}/{num_epochs}, loss: {loss.item():.4f}")
+    print(f"Completed Epoch ")
     
 
 print('Finished Training')

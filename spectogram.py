@@ -12,6 +12,8 @@ import sys
 import librosa
 #import librosa.display
 
+import pickle
+
 #from playsound import playsound
 
 currpath = os.path.abspath(os.getcwd())
@@ -126,14 +128,17 @@ def main():
 
     # converting features to a dataframe
 
-    features_df = pd.DataFrame(features,columns=['feature', 'class'])
+    #features_df = pd.DataFrame(features,columns=['feature', 'class'])
     #print(features_df.head())
 
-    datapath_out = "./trainfeatures.csv"
-    np.set_printoptions(threshold=sys.maxsize)
-    np.set_printoptions(linewidth=sys.maxsize)
+    #datapath_out = "./trainfeatures.csv"
+    #np.set_printoptions(threshold=sys.maxsize)
+    #np.set_printoptions(linewidth=sys.maxsize)
     #datapath_out = os.path.abspath(__file__)
-    features_df.to_csv (datapath_out, index = False, header=True, sep = ';')
+    #features_df.to_csv (datapath_out, index = False, header=True, sep = ';')
+    print("Wrting to Pickle")
+    with open("train_features.pickle", "wb") as file:
+        pickle.dump(features, file, pickle.HIGHEST_PROTOCOL)
 
 if __name__ == "__main__":
     main()
