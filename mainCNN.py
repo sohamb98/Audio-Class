@@ -68,6 +68,7 @@ class AudioDataset(Dataset):
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#device = 'cpu'
 
 #hyper parameters
 dataset = AudioDataset()
@@ -111,23 +112,23 @@ class VGGNet(nn.Module):
         # n, 1, 512, 431 
         self.conv1_1 = nn.Conv2d(1, 64, 3)  # n, 64, 512, 431 
         self.conv1_2 = nn.Conv2d(64, 64, 3) # n, 64, 512, 431 
-        self.pool1 = nn.MaxPool2d(64, 2)    # n, 64, 256, 215
+        self.pool1 = nn.MaxPool2d(2,2)    # n, 64, 254, 213
 
         self.conv2_1 = nn.Conv2d(64, 128, 3)  # n, 128, 256, 215 
         self.conv2_2 = nn.Conv2d(128, 128, 3) # n, 128, 256, 215 
-        self.pool2 = nn.MaxPool2d(128, 2)    # n, 128, 128, 107 
+        self.pool2 = nn.MaxPool2d(2,2)    # n, 128, 125, 104 
 
         self.conv3_1 = nn.Conv2d(128, 256, 3)  # n, 256, 128, 107 
         self.conv3_2 = nn.Conv2d(256, 256, 3) # n, 256, 128, 107 
-        self.pool3 = nn.MaxPool2d(256, 2)    # n, 256, 64, 53
+        self.pool3 = nn.MaxPool2d(2,2)    # n, 256, 60, 50
 
         self.conv4_1 = nn.Conv2d(256, 512, 3)  # n, 512, 64, 53 
         self.conv4_2 = nn.Conv2d(512, 512, 3) # n, 512, 64, 53 
-        self.pool4 = nn.MaxPool2d(128, 2)    # n, 512, 32, 26
-        #Flatten to n, 512*32*26
+        self.pool4 = nn.MaxPool2d(2,2)    # n, 512, 28, 23
+        #Flatten to n, 512, 28, 23
 
 
-        self.fc1 = nn.Linear(16 * 125 * 104, 4096)
+        self.fc1 = nn.Linear(512*28*23, 4096)
         self.fc2 = nn.Linear(4096, 128)
         self.fc3 = nn.Linear(128, 10)
         self.logSoftmax = nn.LogSoftmax(dim=1)
@@ -137,20 +138,21 @@ class VGGNet(nn.Module):
         x = self.conv1_1(x)
         x = self.conv1_2(x)
         x = self.pool1(F.relu(x))
-
+        #print(x.shape)
         x = self.conv2_1(x)
         x = self.conv2_2(x)
         x = self.pool2(F.relu(x))
-
+        #print(x.shape)
         x = self.conv3_1(x)
         x = self.conv3_2(x)
         x = self.pool3(F.relu(x))
-
+        #print(x.shape)
         x = self.conv4_1(x)
         x = self.conv4_2(x)
         x = self.pool4(F.relu(x))
+        #print(x.shape)
 
-        x = x.view(-1, 512*32*26)
+        x = x.view(-1, 512*28*23)
 
         x = F.relu(self.fc1(x))               
         x = F.relu(self.fc2(x)) 
