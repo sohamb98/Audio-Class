@@ -2,17 +2,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
-import torchvision
-import torchvision.transforms as transforms
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import os
-from ast import literal_eval
-import re
 import pickle
 
-#Dataloader Class
+num_epochs = 90
+batch_size = 64
+learning_rate = 0.001
 
 label_to_idx = {
     'airport':0,
@@ -40,11 +36,12 @@ idx_to_label = {
     9:'tram'
 }
 
-class AudioDataset(Dataset):
+
+class AudioTestDataset(Dataset):
     def __init__(self):
         #data loading
         currpath = os.path.abspath(os.getcwd())
-        feature_path = currpath + "/train_features.pickle"
+        feature_path = currpath + "/test_features.pickle"
         feature_path = os.path.abspath(feature_path)
 
         with open(feature_path, "rb") as file:
@@ -65,44 +62,15 @@ class AudioDataset(Dataset):
     def __len__(self):
         return self.n_samples
 
+dataset = AudioTestDataset()
+test_loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=2)
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-#hyper parameters
-dataset = AudioDataset()
+PATH = "./cnn1.pth.tar"
 
 
-num_epochs = 90
-batch_size = 64
-learning_rate = 0.001
 
-train_loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=2)
-
-
-#chunksize=1000000
-#nrows=100
-#feature_chunk = pd.read_csv(feature_path, nrows=100 )
-#feature_data = feature_chunk
-#pd_df = pd.concat(feature_chunk)
-#print(feature_data.head())
-
-#records = len(feature_data.index)
-
-#abc = feature_data.iat[0, feature_data.columns.get_loc('feature')]
-#abc = abc.replace('\n',',')
-#s2 = re.sub('(\d) +(-|\d)', r'\1,\2', abc)
-#print(s2)
-#temp_np = np.array(literal_eval(s2))
-#print(np.shape(temp_np))
-#print(temp_np.min())
-#print(temp_np.max())
-#print(abc)
-#
-
-#for index_num,row in feature.iterrows():
-#    row["feature"]
-#    row["class"]
 
 class ConvNet(nn.Module):
     def __init__(self):
@@ -124,35 +92,55 @@ class ConvNet(nn.Module):
         x = self.fc3(x)                       # -> n, 10
         return x
 
-
 model = ConvNet().to(device)
-
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
+checkpoint = torch.load(PATH)
 
-n_total_steps = len(train_loader)
-for epoch in range(num_epochs):
-    for i, (spectograms, labels) in enumerate(train_loader):
-        #Converting double tensor to float tensor as our model is float
-        spectograms = spectograms.float()
-        spectograms = spectograms.to(device)
+model.load_state_dict(checkpoint['state_dict'])
+optimizer.load_state_dict(checkpoint['optimizer'])
+model.eval()
+
+with torch.no_grad():
+    n_correct = 0
+    n_samples = 0
+    n_class_correct = [0 for i in range(10)]
+    n_class_samples = [0 for i in range(10)]
+
+    for images, labels in test_loader:
+        images = images.to(device)
         labels = labels.to(device)
+        print(labels.shape)
+        outputs = model(images)
+        
 
-        #Forward pass
-        outputs = model(spectograms)
-        #print( list(outputs.size()) )
-        #print( list(tlabels.size()) )
-        loss = criterion(outputs, labels)
+        _, predicted = torch.max(outputs, 1)
 
-        # Backward and optimize
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        print(f"Step: {i+1}/{n_total_steps}, Epoch: {epoch}/{num_epochs}, loss: {loss.item():.4f}")
-    print(f"Completed Epoch ")
-    
+        n_samples += labels.size(0)
+        n_correct += (predicted == labels).sum().item()
+        
+        for i in range(outputs.shape[0]):
+             label = labels[i]
+             pred = predicted[i]
+             if (label == pred):
+                n_class_correct[label] += 1
+             n_class_samples[label] += 1
 
-print('Finished Training')
-PATH = './cnn1.pth.tar'
-torch.save( {'state_dict': model.state_dict(), 'optimizer' : optimizer.state_dict()}, PATH)
+
+        #print(predicted)
+
+    acc = 100.0 * n_correct / n_samples
+    print(f'Accuracy of the network: {acc} %')
+
+    for i in range(10):
+        acc = 100.0 * n_class_correct[i] / n_class_samples[i]
+        print(f'Accuracy of {idx_to_label[i]}: {acc} %')
+
+
+
+
+
+
+
+

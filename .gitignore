@@ -6,3 +6,11 @@ image/
 *.csv
 #Ignore python file
 Tester.py
+#Ingore Pickle Files
+*.pickle
+#Ingnore Logs
+*.txt
+*.out
+#Ignore model weights
+*.pth
+*.pth.tar

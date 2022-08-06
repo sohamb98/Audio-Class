@@ -17,7 +17,7 @@ import pickle
 #from playsound import playsound
 
 currpath = os.path.abspath(os.getcwd())
-datapath = "./evaluation_setup/fold1_train.csv"
+datapath = "./evaluation_setup/fold1_evaluate.csv"
 #audiopath = currpath + "/audio/*.wav"
 
 
@@ -137,7 +137,7 @@ def main():
     #datapath_out = os.path.abspath(__file__)
     #features_df.to_csv (datapath_out, index = False, header=True, sep = ';')
     print("Wrting to Pickle")
-    with open("train_features.pickle", "wb") as file:
+    with open("test_features.pickle", "wb") as file:
         pickle.dump(features, file, pickle.HIGHEST_PROTOCOL)
 
 if __name__ == "__main__":
