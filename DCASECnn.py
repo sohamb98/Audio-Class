@@ -44,7 +44,7 @@ class AudioDataset(Dataset):
     def __init__(self):
         #data loading
         currpath = os.path.abspath(os.getcwd())
-        feature_path = currpath + "/train_features.pickle"
+        feature_path = currpath + "/DCASEtrain_features1.pickle"
         feature_path = os.path.abspath(feature_path)
 
         with open(feature_path, "rb") as file:
@@ -74,9 +74,9 @@ device = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
 dataset = AudioDataset()
 
 
-num_epochs = 150
-batch_size = 16
-learning_rate = 0.005
+num_epochs = 200
+batch_size = 32
+learning_rate = 0.001
 
 train_loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=2)
 
@@ -105,65 +105,88 @@ train_loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, 
 #    row["feature"]
 #    row["class"]
 
-class VGGNet(nn.Module):
+class DCASENet(nn.Module):
     def __init__(self):
-        super(VGGNet, self).__init__()
-        #in_channels, out_channels, kernel_size
-        # n, 1, 512, 431 
-        self.conv1_1 = nn.Conv2d(1, 64, 3)  # n, 64, 512, 431 
-        self.conv1_2 = nn.Conv2d(64, 64, 3) # n, 64, 512, 431 
-        self.pool1 = nn.MaxPool2d(2,2)    # n, 64, 254, 213
+        super(DCASENet, self).__init__()
+        # n, 1, 40, 51 
+        self.conv1_1 = nn.Conv2d(1, 16, 7, 1, 3)  # n, 16, 40, 51 
+        self.Batch1_1 = nn.BatchNorm2d(16)  # n, 16, 40, 51 
 
-        self.conv2_1 = nn.Conv2d(64, 128, 3)  # n, 128, 256, 215 
-        self.conv2_2 = nn.Conv2d(128, 128, 3) # n, 128, 256, 215 
-        self.pool2 = nn.MaxPool2d(2,2)    # n, 128, 125, 104 
 
-        self.conv3_1 = nn.Conv2d(128, 256, 3)  # n, 256, 128, 107 
-        self.conv3_2 = nn.Conv2d(256, 256, 3) # n, 256, 128, 107 
-        self.pool3 = nn.MaxPool2d(2,2)    # n, 256, 60, 50
 
-        self.conv4_1 = nn.Conv2d(256, 512, 3)  # n, 512, 64, 53 
-        self.conv4_2 = nn.Conv2d(512, 512, 3) # n, 512, 64, 53 
-        self.pool4 = nn.MaxPool2d(2,2)    # n, 512, 28, 23
+        self.conv2_1 = nn.Conv2d(16, 16, 7, 1, 3)
+        self.Batch2_1 = nn.BatchNorm2d(16)  # -> n, 16, 40, 51
+        self.pool2 = nn.MaxPool2d(5,5)       
+        self.dropout2 = nn.Dropout(p=0.3)  # -> n, 16,  8, 10 
+
+
+        
+
+        self.conv3_1 = nn.Conv2d(16, 32, 7, 1, 3)  
+        self.Batch3_1 = nn.BatchNorm2d(32) # -> n, 32,  8, 10 
+
+        self.pool3 = nn.MaxPool2d(4,stride=(4,100))    
+        self.dropout3 = nn.Dropout(p=0.3)  # -> n, 32,  2, 1 
+
+        
         #Flatten to n, 512, 28, 23
 
 
-        self.fc1 = nn.Linear(512*28*23, 4096)
-        self.fc2 = nn.Linear(4096, 128)
-        self.fc3 = nn.Linear(128, 10)
+        self.fc1 = nn.Linear(32*2*1 , 100)
+        self.dropout4 = nn.Dropout(p=0.3)
+
+        self.fc2 = nn.Linear(100, 10)
+        
+        
         self.logSoftmax = nn.LogSoftmax(dim=1)
 
     def forward(self, x):
-        # -> n, 1, 512, 431
+        print(x.shape)
+        # -> n, 1, 40, 51
         x = self.conv1_1(x)
-        x = self.conv1_2(x)
-        x = self.pool1(F.relu(x))
-        #print(x.shape)
+        x = self.Batch1_1(x)
+        x = F.relu(x)
+
+        print(x.shape)
+        # -> n, 16, 40, 51
+
+        #Layer 2
         x = self.conv2_1(x)
-        x = self.conv2_2(x)
-        x = self.pool2(F.relu(x))
-        #print(x.shape)
+        x = self.Batch2_1(x)
+        x = F.relu(x)
+        print(x.shape)
+        # -> n, 32, 40, 51
+        x = self.pool2(x)
+        x = self.dropout2(x)
+
+        print(x.shape)
+        # -> n, 32,  8, 10
+
+        #Layer 3
         x = self.conv3_1(x)
-        x = self.conv3_2(x)
-        x = self.pool3(F.relu(x))
-        #print(x.shape)
-        x = self.conv4_1(x)
-        x = self.conv4_2(x)
-        x = self.pool4(F.relu(x))
-        #print(x.shape)
+        x = self.Batch3_1(x)
+        x = F.relu(x)
+        # -> n, 32,  8, 10
+        print(x.shape)
+        x = self.pool3(x)
+        x = self.dropout3(x)
+        # -> n, 64,  2, 1
+        print(x.shape)
 
-        x = x.view(-1, 512*28*23)
 
-        x = F.relu(self.fc1(x))               
-        x = F.relu(self.fc2(x)) 
-        x = self.fc3(x)  
+        x = x.view(-1, 32*2*1) #Flatten
 
+        x = F.relu(self.fc1(x)) # Dense  
+        x = self.dropout4(x) 
+
+                                #Output Layer
+        x = self.fc2(x)
         x = self.logSoftmax(x)
 
         return x
 
 
-model = VGGNet().to(device)
+model = DCASENet().to(device)
 
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -192,5 +215,5 @@ for epoch in range(num_epochs):
     
 
 print('Finished Training')
-PATH = './cnnVGG.pth.tar'
+PATH = './cnnDCASE.pth.tar'
 torch.save( { 'epoch': epoch,'state_dict': model.state_dict(), 'optimizer' : optimizer.state_dict(), 'loss': criterion}, PATH)

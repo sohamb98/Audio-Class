@@ -6,8 +6,8 @@ import numpy as np
 import os
 import pickle
 
-num_epochs = 90
-batch_size = 64
+num_epochs = 200
+batch_size = 32
 learning_rate = 0.001
 
 label_to_idx = {
@@ -41,7 +41,7 @@ class AudioTestDataset(Dataset):
     def __init__(self):
         #data loading
         currpath = os.path.abspath(os.getcwd())
-        feature_path = currpath + "/test_features.pickle"
+        feature_path = currpath + "/DCASEevaluate_features1.pickle"
         feature_path = os.path.abspath(feature_path)
 
         with open(feature_path, "rb") as file:
@@ -67,34 +67,95 @@ test_loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, n
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-PATH = "./cnn1.pth.tar"
+PATH = "./cnnDCASE.pth.tar"
 
 
 
 
-class ConvNet(nn.Module):
+class DCASENet(nn.Module):
     def __init__(self):
-        super(ConvNet, self).__init__()
-        self.conv1 = nn.Conv2d(1, 6, 5)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16 * 125 * 104, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
+        super(DCASENet, self).__init__()
+        # n, 1, 40, 51 
+        self.conv1_1 = nn.Conv2d(1, 16, 7, 1, 3)  # n, 16, 40, 51 
+        self.Batch1_1 = nn.BatchNorm2d(16)  # n, 16, 40, 51 
+
+
+
+        self.conv2_1 = nn.Conv2d(16, 16, 7, 1, 3)
+        self.Batch2_1 = nn.BatchNorm2d(16)  # -> n, 16, 40, 51
+        self.pool2 = nn.MaxPool2d(5,5)       
+        self.dropout2 = nn.Dropout(p=0.3)  # -> n, 16,  8, 10 
+
+
+        
+
+        self.conv3_1 = nn.Conv2d(16, 32, 7, 1, 3)  
+        self.Batch3_1 = nn.BatchNorm2d(32) # -> n, 32,  8, 10 
+
+        self.pool3 = nn.MaxPool2d(4,stride=(4,100))    
+        self.dropout3 = nn.Dropout(p=0.3)  # -> n, 32,  2, 1 
+
+        
+        #Flatten to n, 512, 28, 23
+
+
+        self.fc1 = nn.Linear(32*2*1 , 100)
+        self.dropout4 = nn.Dropout(p=0.3)
+
+        self.fc2 = nn.Linear(100, 10)
+        
+        
+        self.logSoftmax = nn.LogSoftmax(dim=1)
 
     def forward(self, x):
-        # -> n, 1, 512, 431
-        x = self.pool(F.relu(self.conv1(x)))  # -> n, 6, 254, 213
-        x = self.pool(F.relu(self.conv2(x)))  # -> n, 16, 125, 104
-        x = x.view(-1, 16 * 125 * 104)            # -> n, 208000
-        x = F.relu(self.fc1(x))               # -> n, 120
-        x = F.relu(self.fc2(x))               # -> n, 84
-        x = self.fc3(x)                       # -> n, 10
+        print(x.shape)
+        # -> n, 1, 40, 51
+        x = self.conv1_1(x)
+        x = self.Batch1_1(x)
+        x = F.relu(x)
+
+        print(x.shape)
+        # -> n, 16, 40, 51
+
+        #Layer 2
+        x = self.conv2_1(x)
+        x = self.Batch2_1(x)
+        x = F.relu(x)
+        print(x.shape)
+        # -> n, 32, 40, 51
+        x = self.pool2(x)
+        x = self.dropout2(x)
+
+        print(x.shape)
+        # -> n, 32,  8, 10
+
+        #Layer 3
+        x = self.conv3_1(x)
+        x = self.Batch3_1(x)
+        x = F.relu(x)
+        # -> n, 32,  8, 10
+        print(x.shape)
+        x = self.pool3(x)
+        x = self.dropout3(x)
+        # -> n, 64,  2, 1
+        print(x.shape)
+
+
+        x = x.view(-1, 32*2*1) #Flatten
+
+        x = F.relu(self.fc1(x)) # Dense  
+        x = self.dropout4(x) 
+
+                                #Output Layer
+        x = self.fc2(x)
+        x = self.logSoftmax(x)
+
         return x
 
-model = ConvNet().to(device)
+
+model = DCASENet().to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+optimizer =  torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 checkpoint = torch.load(PATH)
 
@@ -111,7 +172,7 @@ with torch.no_grad():
     for images, labels in test_loader:
         images = images.to(device)
         labels = labels.to(device)
-        #print(labels.shape)
+        print(labels.shape)
         outputs = model(images)
         
 
@@ -136,11 +197,3 @@ with torch.no_grad():
     for i in range(10):
         acc = 100.0 * n_class_correct[i] / n_class_samples[i]
         print(f'Accuracy of {idx_to_label[i]}: {acc} %')
-
-
-
-
-
-
-
-

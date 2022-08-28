@@ -80,13 +80,15 @@ plt.show()
 
 def features_extracter(file):
     y, sr = librosa.load(file)
-    s1 = librosa.feature.melspectrogram(y=y,sr = sr, n_mels=128*4)
-
+    #s1 = librosa.feature.melspectrogram(y=y,sr = sr, n_mels=128*4)
+    
+    s1 = librosa.feature.melspectrogram(y=y,sr = sr,n_fft=2048,hop_length=4410, n_mels=40)
+    
     #Add a small number to avoid log(0)
     s1 = np.log(s1 + 1e-9)
 
     s1_db_mel = librosa.amplitude_to_db(np.abs(s1), ref=np.max)
-
+    #print(s1_db_mel.shape)
     return s1_db_mel
 
 def scale_minmax(X, min=0.0, max=1.0):
@@ -137,7 +139,7 @@ def main():
     #datapath_out = os.path.abspath(__file__)
     #features_df.to_csv (datapath_out, index = False, header=True, sep = ';')
     print("Wrting to Pickle")
-    with open("test_features.pickle", "wb") as file:
+    with open("DCASEevaluate_features1.pickle", "wb") as file:
         pickle.dump(features, file, pickle.HIGHEST_PROTOCOL)
 
 if __name__ == "__main__":
