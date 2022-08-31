@@ -248,10 +248,10 @@ for key, value in odict_ranks.items():
 #checkpoint = torch.load(PATH)
 
 #print( checkpoint['state_dict'].keys())
-#print(checkpoint['optimizer'].keys())
+#print(checkpoint['optimizer']['state'])
 #print( checkpoint['state_dict']['conv2_1.weight'].shape )
 
-paras = ['conv1_1.weight','conv1_1.bias','Batch1_1.weight','Batch1_1.bias' ]
+paras = ['conv1_1.weight','conv1_1.bias','Batch1_1.weight','Batch1_1.bias','Batch1_1.running_mean','Batch1_1.running_var']
 nextlayer = 'conv2_1.weight'
 
 row_exclude = s[1]
@@ -267,7 +267,43 @@ x = checkpoint['state_dict'][nextlayer]
 x = torch.cat((x[:,:row_exclude],x[:,row_exclude+1:]),dim=1)
 checkpoint['state_dict'][nextlayer] = x
 
-PATH = "./cnnDCASEprun1.pth.tar"
-#print(x.shape)
-torch.save( { 'epoch': checkpoint['epoch'],'state_dict': checkpoint['state_dict'], 'optimizer' : checkpoint['optimizer'], 'loss': checkpoint['loss']}, PATH)
+#Pruning Optimizer
+#0conv1_1.weight
+#1conv1_1.bias
+#2Batch1_1.weight
+#3Batch1_1.bias
+#4conv2_1.weight
+#5conv2_1.bias
+#6Batch2_1.weight
+#7Batch2_1.bias
+#8conv3_1.weight
+#9conv3_1.bias
+#10Batch3_1.weight
+#11Batch3_1.bias
+#12fc1.weight
+#13fc1.bias
+#14fc2.weight
+#15fc2.bias
+affected_params = [0,1,2,3] 
+affected_params_nl = 4
 
+for para in affected_params:
+    x = checkpoint['optimizer']['state'][para]['exp_avg']
+    y = checkpoint['optimizer']['state'][para]['exp_avg_sq']
+    x = torch.cat((x[:row_exclude],x[row_exclude+1:]))
+    y = torch.cat((y[:row_exclude],y[row_exclude+1:]))
+    checkpoint['optimizer']['state'][para]['exp_avg'] = x
+    checkpoint['optimizer']['state'][para]['exp_avg_sq'] = y
+    print(checkpoint['optimizer']['state'][para]['exp_avg'].shape)
+
+x = checkpoint['optimizer']['state'][affected_params_nl]['exp_avg']
+y = checkpoint['optimizer']['state'][affected_params_nl]['exp_avg_sq'] 
+x = torch.cat((x[:,:row_exclude],x[:,row_exclude+1:]),dim=1)
+y = torch.cat((y[:,:row_exclude],y[:,row_exclude+1:]),dim=1)
+checkpoint['optimizer']['state'][affected_params_nl]['exp_avg'] = x
+checkpoint['optimizer']['state'][affected_params_nl]['exp_avg_sq'] = y
+print(checkpoint['optimizer']['state'][affected_params_nl]['exp_avg'].shape)
+
+PATH = "./cnnDCASEprun1.pth.tar"
+print(x.shape)
+torch.save( { 'epoch': checkpoint['epoch'],'state_dict': checkpoint['state_dict'], 'optimizer' : checkpoint['optimizer'], 'loss': checkpoint['loss']}, PATH)

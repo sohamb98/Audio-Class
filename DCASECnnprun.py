@@ -2,13 +2,17 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
+import torchvision
+import torchvision.transforms as transforms
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import os
+from ast import literal_eval
+import re
 import pickle
 
-num_epochs = 200
-batch_size = 32
-learning_rate = 0.001
+#Dataloader Class
 
 label_to_idx = {
     'airport':0,
@@ -36,12 +40,11 @@ idx_to_label = {
     9:'tram'
 }
 
-
-class AudioTestDataset(Dataset):
+class AudioDataset(Dataset):
     def __init__(self):
         #data loading
         currpath = os.path.abspath(os.getcwd())
-        feature_path = currpath + "/DCASEevaluate_features1.pickle"
+        feature_path = currpath + "/DCASEtrain_features1.pickle"
         feature_path = os.path.abspath(feature_path)
 
         with open(feature_path, "rb") as file:
@@ -62,27 +65,27 @@ class AudioTestDataset(Dataset):
     def __len__(self):
         return self.n_samples
 
-dataset = AudioTestDataset()
-test_loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=2)
+device = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
+dataset = AudioDataset()
 
 
+
+batch_size = 32
+learning_rate = 0.001
+
+train_loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=2)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-#PATH = "./cnnDCASE.pth.tar"
-PATH = "./cnnDCASEprun1retrain.pth.tar"
-
-
-
-
+PATH = "./cnnDCASEprun1.pth.tar"
 class DCASENet(nn.Module):
     def __init__(self):
         super(DCASENet, self).__init__()
         # n, 1, 40, 51 
-        self.conv1_1 = nn.Conv2d(1, 16, 7, 1, 3)  # n, 16, 40, 51 
-        self.Batch1_1 = nn.BatchNorm2d(16)  # n, 16, 40, 51 
+        self.conv1_1 = nn.Conv2d(1, 15, 7, 1, 3)  # n, 16, 40, 51 
+        self.Batch1_1 = nn.BatchNorm2d(15)  # n, 16, 40, 51 
 
 
 
-        self.conv2_1 = nn.Conv2d(16, 16, 7, 1, 3)
+        self.conv2_1 = nn.Conv2d(15, 16, 7, 1, 3)
         self.Batch2_1 = nn.BatchNorm2d(16)  # -> n, 16, 40, 51
         self.pool2 = nn.MaxPool2d(5,5)       
         self.dropout2 = nn.Dropout(p=0.3)  # -> n, 16,  8, 10 
@@ -116,7 +119,7 @@ class DCASENet(nn.Module):
         x = F.relu(x)
 
         print(x.shape)
-        # -> n, 16, 40, 51
+        # -> n, 15, 40, 51
 
         #Layer 2
         x = self.conv2_1(x)
@@ -153,48 +156,38 @@ class DCASENet(nn.Module):
 
         return x
 
-
 model = DCASENet().to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer =  torch.optim.Adam(model.parameters(), lr=learning_rate)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 checkpoint = torch.load(PATH)
-
 model.load_state_dict(checkpoint['state_dict'])
 optimizer.load_state_dict(checkpoint['optimizer'])
-model.eval()
 
-with torch.no_grad():
-    n_correct = 0
-    n_samples = 0
-    n_class_correct = [0 for i in range(10)]
-    n_class_samples = [0 for i in range(10)]
+num_epochs = 10
 
-    for images, labels in test_loader:
-        images = images.to(device)
+n_total_steps = len(train_loader)
+for epoch in range(num_epochs):
+    for i, (spectograms, labels) in enumerate(train_loader):
+        #Converting double tensor to float tensor as our model is float
+        spectograms = spectograms.float()
+        spectograms = spectograms.to(device)
         labels = labels.to(device)
-        print(labels.shape)
-        outputs = model(images)
-        
 
-        _, predicted = torch.max(outputs, 1)
+        #Forward pass
+        outputs = model(spectograms)
+        #print( list(outputs.size()) )
+        #print( list(tlabels.size()) )
+        loss = criterion(outputs, labels)
 
-        n_samples += labels.size(0)
-        n_correct += (predicted == labels).sum().item()
-        
-        for i in range(outputs.shape[0]):
-             label = labels[i]
-             pred = predicted[i]
-             if (label == pred):
-                n_class_correct[label] += 1
-             n_class_samples[label] += 1
+        # Backward and optimize
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        print(f"Step: {i+1}/{n_total_steps}, Epoch: {epoch}/{num_epochs}, loss: {loss.item():.4f}")
+    print(f"Completed Epoch ")
+    
 
-
-        #print(predicted)
-
-    acc = 100.0 * n_correct / n_samples
-    print(f'Accuracy of the network: {acc} %')
-
-    for i in range(10):
-        acc = 100.0 * n_class_correct[i] / n_class_samples[i]
-        print(f'Accuracy of {idx_to_label[i]}: {acc} %')
+print('Finished Training')
+PATH = './cnnDCASEprun1retrain.pth.tar'
+torch.save( { 'epoch': checkpoint['epoch']+num_epochs,'state_dict': model.state_dict(), 'optimizer' : optimizer.state_dict(), 'loss': criterion}, PATH)
