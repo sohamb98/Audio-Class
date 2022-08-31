@@ -1,11 +1,7 @@
 #import torch
 
 #PATH = "./cnnDCASE.pth.tar"
-#checkpoint = torch.load(PATH)
 
-#print( checkpoint['state_dict'].keys())
-#print(checkpoint['optimizer'].keys())
-#print( checkpoint['state_dict']['conv2_1.weight'].shape )
 
 import torch
 import torch.nn as nn
@@ -14,6 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import os
 import pickle
+import collections
 
 num_epochs = 200
 batch_size = 32
@@ -224,3 +221,53 @@ l2norm = LA.vector_norm(ranks, ord=2)
 normranks = torch.div(ranks,l2norm)
 print(normranks.shape)
 #print(model.conv1_1.weight.shape)
+npnormranks = normranks.cpu().numpy()
+unodict_ranks = {}
+
+for i in range(dimens[0]):
+    sum = 0
+    for j in range(dimens[1]*dimens[2]*dimens[3]):
+        sum = sum + (npnormranks[i][j]*npnormranks[i][j])
+    unodict_ranks[sum] = i
+
+odict_ranks = collections.OrderedDict(sorted(unodict_ranks.items()))
+
+K = 0
+i=0
+s = ()
+for key, value in odict_ranks.items():
+    if(K==i):
+        s = (key,value)
+        print(key,value)
+        break
+    i=i+1
+#
+#
+#
+#
+#checkpoint = torch.load(PATH)
+
+#print( checkpoint['state_dict'].keys())
+#print(checkpoint['optimizer'].keys())
+#print( checkpoint['state_dict']['conv2_1.weight'].shape )
+
+paras = ['conv1_1.weight','conv1_1.bias','Batch1_1.weight','Batch1_1.bias' ]
+nextlayer = 'conv2_1.weight'
+
+row_exclude = s[1]
+for para in paras:
+    x = checkpoint['state_dict'][para]
+    x = torch.cat((x[:row_exclude],x[row_exclude+1:]))
+    checkpoint['state_dict'][para] = x
+    print(checkpoint['state_dict'][para].shape)
+
+
+x = checkpoint['state_dict'][nextlayer] 
+#print(x.shape)
+x = torch.cat((x[:,:row_exclude],x[:,row_exclude+1:]),dim=1)
+checkpoint['state_dict'][nextlayer] = x
+
+PATH = "./cnnDCASEprun1.pth.tar"
+#print(x.shape)
+torch.save( { 'epoch': checkpoint['epoch'],'state_dict': checkpoint['state_dict'], 'optimizer' : checkpoint['optimizer'], 'loss': checkpoint['loss']}, PATH)
+
