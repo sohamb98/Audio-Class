@@ -80,12 +80,12 @@ class DCASENet(nn.Module):
     def __init__(self):
         super(DCASENet, self).__init__()
         # n, 1, 40, 51 
-        self.conv1_1 = nn.Conv2d(1, 15, 7, 1, 3)  # n, 16, 40, 51 
-        self.Batch1_1 = nn.BatchNorm2d(15)  # n, 16, 40, 51 
+        self.conv1_1 = nn.Conv2d(1, 13, 7, 1, 3)  # n, 16, 40, 51 
+        self.Batch1_1 = nn.BatchNorm2d(13)  # n, 16, 40, 51 
 
 
 
-        self.conv2_1 = nn.Conv2d(15, 16, 7, 1, 3)
+        self.conv2_1 = nn.Conv2d(13, 16, 7, 1, 3)
         self.Batch2_1 = nn.BatchNorm2d(16)  # -> n, 16, 40, 51
         self.pool2 = nn.MaxPool2d(5,5)       
         self.dropout2 = nn.Dropout(p=0.3)  # -> n, 16,  8, 10 
@@ -94,10 +94,10 @@ class DCASENet(nn.Module):
         
 
         self.conv3_1 = nn.Conv2d(16, 32, 7, 1, 3)  
-        self.Batch3_1 = nn.BatchNorm2d(32) # -> n, 32,  8, 10 
+        self.Batch3_1 = nn.BatchNorm2d(32) # -> n, 30,  8, 10 
 
         self.pool3 = nn.MaxPool2d(4,stride=(4,100))    
-        self.dropout3 = nn.Dropout(p=0.3)  # -> n, 32,  2, 1 
+        self.dropout3 = nn.Dropout(p=0.3)  # -> n, 30,  2, 1 
 
         
         #Flatten to n, 512, 28, 23
@@ -162,7 +162,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 checkpoint = torch.load(PATH)
 model.load_state_dict(checkpoint['state_dict'])
-optimizer.load_state_dict(checkpoint['optimizer'])
+#optimizer.load_state_dict(checkpoint['optimizer'])
 
 num_epochs = 10
 

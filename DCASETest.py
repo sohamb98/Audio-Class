@@ -77,12 +77,12 @@ class DCASENet(nn.Module):
     def __init__(self):
         super(DCASENet, self).__init__()
         # n, 1, 40, 51 
-        self.conv1_1 = nn.Conv2d(1, 16, 7, 1, 3)  # n, 16, 40, 51 
-        self.Batch1_1 = nn.BatchNorm2d(16)  # n, 16, 40, 51 
+        self.conv1_1 = nn.Conv2d(1, 13, 7, 1, 3)  # n, 16, 40, 51 
+        self.Batch1_1 = nn.BatchNorm2d(13)  # n, 16, 40, 51 
 
 
 
-        self.conv2_1 = nn.Conv2d(16, 16, 7, 1, 3)
+        self.conv2_1 = nn.Conv2d(13, 16, 7, 1, 3)
         self.Batch2_1 = nn.BatchNorm2d(16)  # -> n, 16, 40, 51
         self.pool2 = nn.MaxPool2d(5,5)       
         self.dropout2 = nn.Dropout(p=0.3)  # -> n, 16,  8, 10 
