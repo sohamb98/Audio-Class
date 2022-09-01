@@ -80,12 +80,12 @@ class DCASENet(nn.Module):
     def __init__(self):
         super(DCASENet, self).__init__()
         # n, 1, 40, 51 
-        self.conv1_1 = nn.Conv2d(1, 13, 7, 1, 3)  # n, 16, 40, 51 
-        self.Batch1_1 = nn.BatchNorm2d(13)  # n, 16, 40, 51 
+        self.conv1_1 = nn.Conv2d(1, 12, 7, 1, 3)  # n, 16, 40, 51 
+        self.Batch1_1 = nn.BatchNorm2d(12)  # n, 16, 40, 51 
 
 
 
-        self.conv2_1 = nn.Conv2d(13, 16, 7, 1, 3)
+        self.conv2_1 = nn.Conv2d(12, 16, 7, 1, 3)
         self.Batch2_1 = nn.BatchNorm2d(16)  # -> n, 16, 40, 51
         self.pool2 = nn.MaxPool2d(5,5)       
         self.dropout2 = nn.Dropout(p=0.3)  # -> n, 16,  8, 10 
@@ -93,8 +93,8 @@ class DCASENet(nn.Module):
 
         
 
-        self.conv3_1 = nn.Conv2d(16, 32, 7, 1, 3)  
-        self.Batch3_1 = nn.BatchNorm2d(32) # -> n, 30,  8, 10 
+        self.conv3_1 = nn.Conv2d(16, 30, 7, 1, 3)  
+        self.Batch3_1 = nn.BatchNorm2d(30) # -> n, 30,  8, 10 
 
         self.pool3 = nn.MaxPool2d(4,stride=(4,100))    
         self.dropout3 = nn.Dropout(p=0.3)  # -> n, 30,  2, 1 
@@ -103,7 +103,7 @@ class DCASENet(nn.Module):
         #Flatten to n, 512, 28, 23
 
 
-        self.fc1 = nn.Linear(32*2*1 , 100)
+        self.fc1 = nn.Linear(30*2*1 , 100)
         self.dropout4 = nn.Dropout(p=0.3)
 
         self.fc2 = nn.Linear(100, 10)
@@ -145,7 +145,7 @@ class DCASENet(nn.Module):
         print(x.shape)
 
 
-        x = x.view(-1, 32*2*1) #Flatten
+        x = x.view(-1, 30*2*1) #Flatten
 
         x = F.relu(self.fc1(x)) # Dense  
         x = self.dropout4(x) 
@@ -162,7 +162,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 checkpoint = torch.load(PATH)
 model.load_state_dict(checkpoint['state_dict'])
-#optimizer.load_state_dict(checkpoint['optimizer'])
+optimizer.load_state_dict(checkpoint['optimizer'])
 
 num_epochs = 10
 

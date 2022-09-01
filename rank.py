@@ -285,7 +285,7 @@ for i in range(dimens2[0]):
 
 odict_ranks = collections.OrderedDict(sorted(unodict_ranks.items()))
 nfilters = len(odict_ranks)
-percentage = 0.05
+percentage = 0.1
 k = int(percentage*nfilters)
 
 prunelist = {0:[],1:[],2:[]}
@@ -403,19 +403,28 @@ print(checkpoint['optimizer']['state'][8]['exp_avg'].shape)
 
 x = checkpoint['optimizer']['state'][12]['exp_avg']
 y = checkpoint['optimizer']['state'][12]['exp_avg_sq']
+
 x = torch.reshape(x,(-1,p,2,1))
 y = torch.reshape(y,(-1,p,2,1))
+
+
+
 for r in prunelist[2]:
     #print(x.shape)
     x = torch.cat((x[:,:r],x[:,r+1:]),dim=1)
     y = torch.cat((y[:,:r],y[:,r+1:]),dim=1)
     #print(checkpoint['state_dict'][nextlayer].shape)
 
+
 x = torch.reshape(x,(-1,(p-len(prunelist[2]))*2*1))
-y = torch.reshape(x,(-1,(p-len(prunelist[2]))*2*1))
+y = torch.reshape(y,(-1,(p-len(prunelist[2]))*2*1))
+
 checkpoint['optimizer']['state'][12]['exp_avg'] = x
 checkpoint['optimizer']['state'][12]['exp_avg_sq'] = y
+
 print(checkpoint['optimizer']['state'][12]['exp_avg_sq'].shape)
+
+
 '''
 npnormranks = normranks.cpu().numpy()
 unodict_ranks = {}
