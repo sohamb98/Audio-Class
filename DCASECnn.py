@@ -44,7 +44,8 @@ class AudioDataset(Dataset):
     def __init__(self):
         #data loading
         currpath = os.path.abspath(os.getcwd())
-        feature_path = currpath + "/DCASEtrain_features1.pickle"
+        #feature_path = currpath + "/DCASEtrain_features1.pickle"
+        feature_path = currpath + "/train_features.pickle"
         feature_path = os.path.abspath(feature_path)
 
         with open(feature_path, "rb") as file:
